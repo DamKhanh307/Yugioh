@@ -3,626 +3,685 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Yu-Gi-Oh! Mini — Full Duel</title>
+<title>Yu-Gi-Oh! Mini</title>
 <style>
-:root{--bg:#071022;--panel:#0f1724;--muted:#9fb0c6;--accent:#ffd166}
-*{box-sizing:border-box}
-body{margin:0;background:linear-gradient(180deg,#071022,#07172a);color:#e6eef8;font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
-.app{max-width:1200px;margin:18px auto;padding:14px}
-.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.h1{font-size:20px}
-.btn{background:#134a5b;border:none;padding:8px 10px;border-radius:6px;color:#fff;cursor:pointer}
-.btn.primary{background:var(--accent);color:#071022;font-weight:700}
-.row{display:flex;gap:12px;align-items:flex-start}
-.col{background:var(--panel);padding:12px;border-radius:8px;flex:1}
-.small{font-size:12px;color:var(--muted)}
-.card-grid{display:flex;flex-wrap:wrap;gap:8px;max-height:56vh;overflow:auto;padding:6px}
-.card-item{width:110px;background:#091723;border-radius:8px;padding:6px;cursor:pointer;border:2px solid transparent}
-.card-item.selected{border-color:#27c4ff}
-.card-item img{width:100%;height:72px;object-fit:cover;border-radius:4px}
-.controls{display:flex;gap:8px;align-items:center;margin-top:8px}
-.alert{color:#ffdede}
-.hidden{display:none}
-
-/* Duel field layout */
-.field-wrap{display:grid;grid-template-rows:auto 1fr auto;gap:8px}
-.field-top{display:flex;justify-content:space-between;gap:12px}
-.panel-center{display:flex;gap:12px;align-items:center;justify-content:center}
-.zones{display:flex;gap:10px}
-.zone{width:120px;height:140px;border-radius:8px;border:2px dashed rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#07182a,#052734);position:relative;color:var(--muted);overflow:hidden}
-.zone.empty::after{content:"Empty";position:absolute;bottom:6px;left:6px;font-size:11px;color:var(--muted)}
-.zone .card{width:100px;height:120px;border-radius:6px;background:#111;padding:6px;display:flex;flex-direction:column;justify-content:space-between;font-size:12px;color:#fff}
-.zone .card img{width:100%;height:70px;object-fit:cover;border-radius:4px}
-.hand{display:flex;gap:8px;padding:10px;overflow:auto;background:linear-gradient(180deg,#021320,#05202a);border-radius:8px}
-.hand .hand-card{width:120px;height:170px;border-radius:8px;background:#0b2b35;cursor:grab;flex:0 0 auto;position:relative}
-.hand .hand-card img{width:100%;height:110px;object-fit:cover;border-radius:6px}
-.log{max-height:160px;overflow:auto;background:rgba(255,255,255,0.02);padding:8px;border-radius:6px;color:var(--muted);font-size:13px}
-
-.badge{background:#0d2a36;color:#9fe6ff;padding:6px 8px;border-radius:6px;font-weight:700}
-.footer-controls{display:flex;gap:8px;align-items:center;margin-top:8px}
-.info-box{font-size:13px;color:var(--muted)}
-.grave-box{width:200px;height:120px;border-radius:8px;background:linear-gradient(180deg,#071224,#02121a);display:flex;flex-direction:column;align-items:center;justify-content:center}
-#oppInfo:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
-/* Card face-down visual */
-.zone .card.facedown img {
-    filter: brightness(0);
-    border: 2px solid #555;
+:root {
+    --bg-grass: #2d5a27;
+    --board-mat: #28201a;
+    --zone-bg: rgba(0, 0, 0, 0.3);
+    --zone-border: rgba(255, 255, 255, 0.2);
+    --zone-hover: rgba(255, 215, 0, 0.2);
+    --accent: #ffd166;
+    --text-color: #fff;
+    --card-width: 70px;
+    --card-height: 100px;
 }
-.zone .card.facedown::after {
-    content: "SET";
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    color: #fff;
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    background: radial-gradient(circle, #4caf50 0%, #1b5e20 100%);     color: var(--text-color);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;     height: 100vh;
+}
+
+.hidden { display: none !important; }
+.btn {
+    background: linear-gradient(180deg, #3867d6, #2d98da);
+    border: 1px solid #fff;
+    padding: 8px 16px;
+    color: white;
+    cursor: pointer;
+    border-radius: 4px;
     font-weight: bold;
-    pointer-events: none;
+    text-shadow: 1px 1px 2px black;
 }
+.btn:hover { filter: brightness(1.2); }
+.btn.primary { background: linear-gradient(180deg, #f7b731, #eb3b5a); color: #fff; }
+
+#screen-deck {
+    max-width: 1200px; margin: 20px auto; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px;
+    height: 90vh; overflow-y: auto; display: flex; flex-direction: column;
+}
+.deck-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #555; padding-bottom: 10px;}
+.search-bar { display: flex; gap: 10px; margin-bottom: 15px; }
+.card-grid { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; min-height: 200px; }
+.card-item { width: 80px; cursor: pointer; transition: transform 0.1s; }
+.card-item:hover { transform: scale(1.1); z-index: 10; }
+.card-item img { width: 100%; border-radius: 4px; }
+.card-item .small { font-size: 10px; text-align: center; margin-top: 2px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;}
+
+#screen-duel {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    position: relative;
+}
+
+.player-info {
+    position: absolute;
+    z-index: 100;
+    padding: 10px 20px;
+    background: rgba(0,0,0,0.8);
+    border: 2px solid #555;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    width: 320px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+.player-info img { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #fff; }
+.lp-bar { flex: 1; }
+.lp-val { font-size: 24px; font-weight: bold; color: #ffeb3b; text-shadow: 0 0 5px #f00; font-family: 'Courier New', monospace; }
+.player-name { font-size: 14px; text-transform: uppercase; color: #aaa; }
+
+#info-opp { top: 20px; right: 20px; flex-direction: row-reverse; text-align: right; }
+#info-player { bottom: 20px; left: 20px; }
+
+.duel-field {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 1200px;
+}
+
+.board-mat {
+    width: 900px;
+    height: 640px;
+    background: var(--board-mat);
+    border: 8px solid #1a1410;
+    border-radius: 4px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    display: grid;
+   grid-template-rows: 0.85fr 1.4fr 20px 1.4fr 0.85fr;     grid-template-columns: 100px repeat(5, 1fr) 100px;     gap: 8px;
+    padding: 15px;
+    position: relative;
+    transform: rotateX(40deg) translateY(-20px)
+}
+
+.zone-slot {
+    border: 2px dashed var(--zone-border);
+    background: var(--zone-bg);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: 0.2s;
+}
+.zone-slot:hover { border-color: #fff; background: rgba(255,255,255,0.1); }
+.zone-slot.active-zone { border-color: #ffff00; box-shadow: 0 0 10px #ffff00; }
+
+.zone-label {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    font-size: 10px; color: rgba(255,255,255,0.2); text-align: center; pointer-events: none;
+    font-weight: bold; text-transform: uppercase;
+}
+
+.card-in-zone {
+  width: 100%;       
+    height: 100%;
+    object-fit: cover;
+    background-position: center;
+    border-radius: 3px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    cursor: pointer;
+    position: relative;
+}
+.card-in-zone.facedown {
+    background-image: url('https://upload.wikimedia.org/wikipedia/en/2/2b/Yugioh_Card_Back.jpg');
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+.card-in-zone.defense { transform: rotate(-90deg); }
+
+.opp-field-zone { grid-column: 7; grid-row: 1; } .opp-extra-zone { grid-column: 1; grid-row: 1; } 
+.opp-deck-zone  { grid-column: 1; grid-row: 1; background: rgba(0,0,0,0.5); border: 2px solid #555; }
+.opp-grave-zone { grid-column: 1; grid-row: 2; background: rgba(0,0,0,0.5); border: 2px solid #555; }
+
+
+#oppST { display: contents; } #oppMZ { display: contents; }
+
+#plMZ { display: contents; }
+#plST { display: contents; }
+
+.opp-st-0 { grid-column: 6; grid-row: 1; } .opp-st-1 { grid-column: 5; grid-row: 1; } .opp-st-2 { grid-column: 4; grid-row: 1; } .opp-st-3 { grid-column: 3; grid-row: 1; } .opp-st-4 { grid-column: 2; grid-row: 1; }
+.opp-mz-0 { grid-column: 6; grid-row: 2; } .opp-mz-1 { grid-column: 5; grid-row: 2; } .opp-mz-2 { grid-column: 4; grid-row: 2; } .opp-mz-3 { grid-column: 3; grid-row: 2; } .opp-mz-4 { grid-column: 2; grid-row: 2; }
+
+.player-mz-0 { grid-column: 2; grid-row: 4; } .player-mz-1 { grid-column: 3; grid-row: 4; } .player-mz-2 { grid-column: 4; grid-row: 4; } .player-mz-3 { grid-column: 5; grid-row: 4; } .player-mz-4 { grid-column: 6; grid-row: 4; }
+.player-st-0 { grid-column: 2; grid-row: 5; } .player-st-1 { grid-column: 3; grid-row: 5; } .player-st-2 { grid-column: 4; grid-row: 5; } .player-st-3 { grid-column: 5; grid-row: 5; } .player-st-4 { grid-column: 6; grid-row: 5; }
+
+.player-field-zone { grid-column: 1; grid-row: 4; border-color: #2e8b57; }
+.player-extra-zone { grid-column: 1; grid-row: 5; border-color: #555; }
+.player-grave-zone { grid-column: 7; grid-row: 4; border-color: #666; cursor: pointer;}
+.player-deck-zone  { grid-column: 7; grid-row: 5; border-color: #8B4513; cursor: pointer;}
+
+.opp-deck-slot  { grid-column: 1; grid-row: 1; border-color: #8B4513; }
+.opp-grave-slot { grid-column: 1; grid-row: 2; border-color: #666; }
+.opp-field-slot { grid-column: 7; grid-row: 2; border-color: #2e8b57; }
+.opp-extra-slot { grid-column: 7; grid-row: 1; border-color: #555; }
+
+
+.hand-container {
+    position: absolute;
+    left: 50%; transform: translateX(-50%);
+    display: flex; gap: 5px;
+    padding: 10px;
+    z-index: 50;
+}
+#hand {     bottom: 0;
+    align-items: flex-end;
+}
+.opp-hand {     top: 0;
+    align-items: flex-start;
+}
+.hand-card {
+    width: 90px; height: 130px;
+    background: #111;
+    border: 2px solid #fff;
+    border-radius: 5px;
+    box-shadow: -5px 0 10px rgba(0,0,0,0.5);
+    transition: 0.2s;
+    cursor: grab;
+    position: relative;
+}
+.hand-card:hover { transform: translateY(-20px); z-index: 100; border-color: #ffff00; }
+.hand-card img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
+.opp-hand .hand-card {
+    height: 100px; width: 70px;
+    background-image: url('https://upload.wikimedia.org/wikipedia/en/2/2b/Yugioh_Card_Back.jpg');
+    background-size: cover;
+    border: 1px solid #555;
+}
+
+.phase-bar {
+    position: absolute;
+    top: 50%; right: 20px; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 5px;
+}
+.phase-step {
+    padding: 5px 10px; background: rgba(0,0,0,0.6); color: #888; border: 1px solid #444; font-size: 12px; text-align: center;
+}
+.phase-step.active { background: #ffeb3b; color: #000; font-weight: bold; box-shadow: 0 0 10px #ffeb3b; }
+
+.controls-area {
+    position: absolute; bottom: 20px; right: 20px;
+    display: flex; flex-direction: column; gap: 10px; z-index: 101;
+}
+
+.log-box {
+    position: absolute; top: 120px; left: 20px;
+    width: 250px; height: 150px;
+    background: rgba(0,0,0,0.7);
+    border: 1px solid #555;
+    color: #ccc; font-size: 12px;
+    padding: 5px; overflow-y: auto;
+    pointer-events: none; }
+
+@keyframes draw { from { transform: translateY(-100px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+.hand-card { animation: draw 0.3s ease-out; }
+
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="header">
-    <div class="h1">Yu-Gi-Oh! Mini — Full Duel (deck select → duel)</div>
-    <div class="small">Tip: run with a local server to avoid CORS issues</div>
-  </div>
 
-  <!-- SCREEN: deck select -->
-  <div id="screen-deck" class="">
-    <div class="row">
-      <div class="col" style="flex:2">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div class="small">Search YGOPRODeck API</div>
-            <div style="margin-top:6px">
-              <input id="searchInput" placeholder="Enter card name (ex: Dark Magician)" style="width:60%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#fff"/>
-              <button id="btnSearch" class="btn">Search</button>
-              <button id="btnRandom" class="btn">Random sample</button>
+<div id="screen-deck">
+    <div class="deck-header">
+        <h2 style="color:#ffd166; margin:0">Yu-Gi-Oh! Deck Build</h2>
+        <div style="text-align:right">
+            <span class="small">Deck: <span id="deckCount">0</span>/20</span>
+            <button id="btnStart" class="btn primary" style="margin-left:10px">DUEL START</button>
+        </div>
+    </div>
+    
+    <div style="display:flex; gap:20px; flex:1">
+        <div style="flex:2; display:flex; flex-direction:column">
+            <div class="search-bar">
+                <input id="searchInput" placeholder="Tìm tên bài (VD: Dark Magician)..." style="flex:1; padding:10px; background:#222; border:1px solid #555; color:#fff; border-radius:4px">
+                <button id="btnSearch" class="btn">Tìm</button>
+                <button id="btnRandom" class="btn">Random</button>
             </div>
-          </div>
-          <div class="info-box">
-            <div>Selected deck size: <span id="deckCount">0</span>/20</div>
-            <div style="margin-top:6px"><button id="btnStart" class="btn primary">Start Duel</button></div>
-          </div>
+            <div id="cardGrid" class="card-grid"></div>
         </div>
-
-        <div style="margin-top:10px" class="card-grid" id="cardGrid">
-          <!-- search results here -->
-        </div>
-      </div>
-
-      <div class="col" style="flex:1">
-        <div class="small">Selected deck (order preserved)</div>
-        <div id="selectedDeck" class="card-grid"></div>
-        <div class="controls"><button id="clearDeck" class="btn">Clear</button> <div class="small" style="margin-left:6px">Tip: choose up to 20 cards</div></div>
-        <div style="margin-top:12px" class="small">Quick guide: search name → click card to add to deck → Start Duel</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN: duel -->
-  <div id="screen-duel" class="hidden" style="margin-top:12px">
-    <div class="field-wrap">
-      <div class="field-top">
-        <div class="col" style="flex:3">
-  <div id="oppInfo" style="display:flex;justify-content:space-between;align-items:center; cursor:pointer; border:1px solid transparent; padding:4px; border-radius:4px; transition:0.2s">
-    <div>
-      <div class="small">Opponent (Click to Attack Direct)</div>
-      <div style="font-weight:700">LP: <span id="oppLP">8000</span></div>
-    </div>
-    <div class="badge" id="turnBadge">YOUR TURN</div>
-    <div class="small">Deck: <span id="oppDeckCnt">20</span> • Grave: <span id="oppGraveCnt">0</span></div>
-  </div>
-
-          <div style="margin-top:8px">
-            <div class="small">Spell/Trap Zone</div>
-            <div class="zones" id="oppST"></div>
-
-            <div style="height:8px"></div>
-            <div class="small">Monster Zone</div>
-            <div class="zones" id="oppMZ"></div>
-          </div>
-        </div>
-
-        <div class="col" style="flex:1">
-          <div class="small">Opponent Grave</div>
-          <div class="grave-box" id="oppGraveBox"><div id="oppGraveTop">—</div><div class="small" id="oppGraveNum">0 cards</div></div>
-        </div>
-      </div>
-
-      <div class="panel-center">
-        <div style="width:60%" class="col">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div class="small">You</div>
-              <div style="font-weight:700">LP: <span id="plLP">8000</span></div>
+        
+        <div style="flex:1; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; display:flex; flex-direction:column">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px">
+                <strong>Your Deck</strong>
+                <button id="clearDeck" class="btn" style="padding:4px 8px; font-size:12px; background:#c0392b">Clear</button>
             </div>
-            <div class="small">Deck: <span id="plDeckCnt">20</span> • Grave: <span id="plGraveCnt">0</span></div>
-            <div class="small">Phase: <span id="phaseName">MAIN</span></div>
-            <div class="small">Selected: <span id="selectedInfo">—</span></div>
-          </div>
-
-          <div style="margin-top:8px">
-            <div class="small">Monster Zone</div>
-            <div class="zones" id="plMZ"></div>
-
-            <div style="height:8px"></div>
-            <div class="small">Spell/Trap Zone</div>
-            <div class="zones" id="plST"></div>
-          </div>
+            <div id="selectedDeck" class="card-grid" style="flex:1; align-content:flex-start"></div>
         </div>
-
-        <div style="width:300px" class="col">
-          <div class="small">Your Grave</div>
-          <div class="grave-box" id="plGraveBox"><div id="plGraveTop">—</div><div class="small" id="plGraveNum">0 cards</div></div>
-
-          <div style="margin-top:10px" class="small">Controls</div>
-          <div class="footer-controls">
-            <button id="btnDraw" class="btn">Draw</button>
-            <button id="btnEnd" class="btn primary">End Turn</button>
-            <button id="btnToBattle" class="btn">Go Battle</button>
-          </div>
-
-          <div style="margin-top:10px">
-            <div class="small">Log</div>
-            <div class="log" id="log"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col">
-        <div class="small">Your Hand</div>
-        <div class="hand" id="hand"></div>
-        <div style="margin-top:8px" class="small">Drag card from hand → drop to Monster Zone (summon) or Spell/Trap Zone (set).</div>
-      </div>
     </div>
-  </div>
+</div>
+
+<div id="screen-duel" class="hidden">
+    
+    <div class="player-info" id="info-opp">
+        <img src="https://i.pinimg.com/736x/2f/15/22/2f1522f203879a61ce592398452488e0.jpg" alt="Kaiba"> <div class="lp-bar">
+            <div class="player-name">Kaiba Corp AI</div>
+            <div class="lp-val" id="oppLP">8000</div>
+        </div>
+    </div>
+
+    <div class="hand-container opp-hand" id="oppHandVisual">
+        </div>
+
+    <div class="duel-field">
+        <div class="board-mat">
+            
+            <div class="zone-slot opp-deck-slot"><div class="zone-label">DECK</div><span id="oppDeckCnt" style="position:absolute; bottom:2px; right:2px; font-size:18px; font-weight:bold; color:#fff">20</span></div>
+            <div class="zone-slot opp-grave-slot" id="oppGraveBox"><div class="zone-label">GY</div></div>
+            
+            <div id="oppST" style="display:contents"></div>
+            <div id="oppMZ" style="display:contents"></div>
+
+            <div class="zone-slot opp-field-slot"><div class="zone-label">FIELD</div></div>
+            <div class="zone-slot opp-extra-slot"><div class="zone-label">EXTRA</div></div>
+
+            <div class="zone-slot player-field-zone"><div class="zone-label">FIELD</div></div>
+            <div class="zone-slot player-extra-zone"><div class="zone-label">EXTRA</div></div>
+
+            <div id="plMZ" style="display:contents"></div>
+            <div id="plST" style="display:contents"></div>
+
+            <div class="zone-slot player-grave-zone" id="plGraveBox">
+                <div class="zone-label">GY</div>
+                <div id="plGraveTop" style="z-index:1; width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:10px;"></div>
+            </div>
+            <div class="zone-slot player-deck-zone">
+                <div class="zone-label">DECK</div>
+                <div style="width:100%; height:100%; background:url('https://upload.wikimedia.org/wikipedia/en/2/2b/Yugioh_Card_Back.jpg'); background-size:cover; border-radius:3px"></div>
+                <span id="plDeckCnt" style="position:absolute; bottom:5px; right:5px; font-weight:bold; font-size:18px; text-shadow:1px 1px 2px #000">20</span>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="player-info" id="info-player">
+        <img src="https://i.pinimg.com/736x/89/c6/39/89c6396e9444b0253457a41285375543.jpg" alt="Yugi">
+        <div class="lp-bar">
+            <div class="player-name">Duelist (You)</div>
+            <div class="lp-val" id="plLP">8000</div>
+        </div>
+        <div style="color:#aaa; font-size:12px">Turn: <span id="turnBadge" style="color:#fff; font-weight:bold">YOURS</span></div>
+    </div>
+
+    <div class="phase-bar">
+        <div class="phase-step">DRAW</div>
+        <div class="phase-step">STANDBY</div>
+        <div class="phase-step active" id="phaseName">MAIN</div>
+        <div class="phase-step">BATTLE</div>
+        <div class="phase-step">END</div>
+    </div>
+
+    <div class="log-box" id="log">
+        <div>-- Duel Log --</div>
+    </div>
+
+    <div class="controls-area">
+        <div style="background:rgba(0,0,0,0.8); padding:10px; border-radius:8px; color:#fff; margin-bottom:10px">
+             Selected: <span id="selectedInfo" style="color:#ffd166">None</span>
+        </div>
+        <button id="btnDraw" class="btn">Draw Card</button>
+        <button id="btnToBattle" class="btn" style="background: linear-gradient(180deg, #c23616, #c0392b);">Battle Phase</button>
+        <button id="btnEnd" class="btn primary">End Turn</button>
+    </div>
+
+    <div class="hand-container" id="hand"></div>
+
 </div>
 
 <script>
-/* ===========================
-   Config & utils
-   =========================== */
-const API_BASE = 'https://db.ygoprodeck.com/api/v7/cardinfo.php?name=';
+const API_BASE = 'https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=';
 const MAX_DECK = 20;
-const logEl = id('log');
 
 function id(x){return document.getElementById(x)}
 function el(tag,cls){const d=document.createElement(tag); if(cls) d.className=cls; return d}
-function log(msg){ const now = new Date().toLocaleTimeString(); id('log').innerHTML = `<div>[${now}] ${msg}</div>` + id('log').innerHTML }
+function log(msg){ 
+    const now = new Date().toLocaleTimeString('vi-VN',{hour12:false}); 
+    const d = document.createElement('div');
+    d.innerHTML = `<span style="color:#888">[${now}]</span> ${msg}`;
+    const box = id('log');
+    box.insertBefore(d, box.childNodes[1]);
+}
 
-/* Mẫu Hiệu Ứng*/
-const cardEffects = {
-  "Raigeki": (who) => {
-    const targetField = who==='player' ? opp.field : player.field;
-    const targetGrave = who==='player' ? opp.grave : player.grave;
-    let count = 0;
-    for(let i=0; i<5; i++){
-      if(targetField[i]) {
-        targetGrave.push(targetField[i]);
-        targetField[i] = null;
-        count++;
-      }
-    }
-    return `Đã tiêu diệt ${count} quái thú của đối phương!`;
-  },
-  "Dian Keto the Cure Master": (who) => {
-    if(who==='player') player.lp += 1000; else opp.lp += 1000;
-    return "Hồi phục 1000 LP.";
-  },
-  "Ookazi": (who) => {
-    if(who==='player') opp.lp -= 800; else player.lp -= 800;
-    return "Gây 800 sát thương cho đối thủ.";
-  },
-  "Pot of Greed": (who) => {
-    drawCard(who);
-    drawCard(who);
-    return "Rút 2 lá bài.";
-  },
-  "Dark Hole": (who) => {
-    [player, opp].forEach(p => {
-      for(let i=0; i<5; i++){
-        if(p.field[i]){ p.grave.push(p.field[i]); p.field[i] = null; }
-      }
-    });
-    return "Đã tiêu diệt toàn bộ quái thú trên sân!";
-  }
-};
-/* ===========================
-   App state
-   =========================== */
 let chosenDeck = [];
 let player = { lp:8000, deck:[], hand:[], field:[null,null,null,null,null], st:[null,null,null,null,null], grave:[] }
 let opp = { lp:8000, deck:[], hand:[], field:[null,null,null,null,null], st:[null,null,null,null,null], grave:[] }
 let state = { turn:'player', phase:'MAIN', selected:null, started:false }
 
-/* ===========================
-   Deck select screen logic
-   =========================== */
 const cardGrid = id('cardGrid'), selectedDeckEl = id('selectedDeck'), deckCountEl = id('deckCount')
+
 id('btnSearch').onclick = async () => {
-  const q = document.getElementById('searchInput').value.trim()
-  if(!q) return alert('Nhập tên bài để search')
+  const q = id('searchInput').value.trim()
+  if(!q) return alert('Nhập tên bài để tìm!')
   await searchAndShow(q)
 }
 id('btnRandom').onclick = ()=> {
   const samples = [
-    {id:'c1',name:'Dark Magician',atk:2500,def:2100,level:7,image:'https://images.ygoprodeck.com/images/cards/46986414.jpg'},
-    {id:'c2',name:'Blue-Eyes White Dragon',atk:3000,def:2500,level:8,image:'https://images.ygoprodeck.com/images/cards/89631139.jpg'},
-    {id:'c3',name:'Kuriboh',atk:300,def:200,level:1,image:'https://images.ygoprodeck.com/images/cards/40640057.jpg'}
+    {id:'c1',name:'Dark Magician',atk:2500,def:2100,image:'https://images.ygoprodeck.com/images/cards/46986414.jpg'},
+    {id:'c2',name:'Blue-Eyes White Dragon',atk:3000,def:2500,image:'https://images.ygoprodeck.com/images/cards/89631139.jpg'},
+    {id:'c3',name:'Mirror Force',image:'https://images.ygoprodeck.com/images/cards/44095760.jpg'},
+    {id:'c4',name:'Pot of Greed',image:'https://images.ygoprodeck.com/images/cards/55144522.jpg'},
+    {id:'c5',name:'Summoned Skull',atk:2500,def:1200,image:'https://images.ygoprodeck.com/images/cards/70781052.jpg'}
   ]
   renderCardResults(samples)
 }
 id('clearDeck').onclick = ()=> { chosenDeck=[]; renderSelectedDeck(); }
 id('btnStart').onclick = ()=> {
-  if(chosenDeck.length < 5) return alert('Chọn ít nhất 5 lá để duel (demo)')
+  if(chosenDeck.length < 5) return alert('Bộ bài cần ít nhất 5 lá!')
   startDuel()
 }
 
 async function searchAndShow(name){
-  cardGrid.innerHTML = '<div class="small">Searching...</div>'
+  cardGrid.innerHTML = '<div style="color:#fff">Đang tìm...</div>'
   try{
     const res = await fetch(API_BASE + encodeURIComponent(name))
-    if(!res.ok) throw new Error('API error: ' + res.status)
     const j = await res.json()
-    if(!j.data || j.data.length===0) { cardGrid.innerHTML = '<div class="small">Không tìm thấy</div>'; return }
-    const results = j.data.map(c=>({
-      id: c.id || c.name,
-      name: c.name,
-      atk: c.atk || 0,
-      def: c.def || 0,
-      level: c.level || 0,
-      image: (c.card_images && c.card_images[0] && c.card_images[0].image_url) ? c.card_images[0].image_url : null,
-      raw: c
+    if(!j.data || j.data.length===0) { cardGrid.innerHTML = '<div>Không tìm thấy</div>'; return }
+    const results = j.data.slice(0,10).map(c=>({
+      id: c.id, name: c.name, atk: c.atk, def: c.def,
+      image: c.card_images[0].image_url
     }))
     renderCardResults(results)
-  }catch(err){
-    console.error(err)
-    cardGrid.innerHTML = '<div class="small alert">API lỗi hoặc bị CORS — thử Random sample</div>'
-  }
+  }catch(e){ cardGrid.innerHTML = '<div class="alert">Lỗi API (thử Random)</div>' }
 }
 
 function renderCardResults(arr){
   cardGrid.innerHTML = ''
-  arr.forEach(card=>{
-    const div = el('div','card-item')
-    const img = el('img'); img.src = card.image || ''; div.appendChild(img)
-    const nm = el('div'); nm.textContent = card.name; nm.className='small'; nm.style.marginTop='6px'
-    div.appendChild(nm)
-    div.onclick = ()=>{
-      if(chosenDeck.length >= MAX_DECK) return alert('Đã đủ 20 lá')
-      const clone = {...card, uid: card.id + '-' + Math.random().toString(36).slice(2,8)}
-      chosenDeck.push(clone)
-      renderSelectedDeck()
+  arr.forEach(c=>{
+    const d = el('div','card-item'); 
+    d.innerHTML = `<img src="${c.image}"><div class="small">${c.name}</div>`
+    d.onclick = ()=>{
+       if(chosenDeck.length>=MAX_DECK) return alert('Deck đầy!')
+       chosenDeck.push({...c, uid: Math.random().toString(36).substr(2,9)})
+       renderSelectedDeck()
     }
-    cardGrid.appendChild(div)
+    cardGrid.appendChild(d)
   })
 }
 
 function renderSelectedDeck(){
   selectedDeckEl.innerHTML = ''
   chosenDeck.forEach((c,i)=>{
-    const d = el('div','card-item')
-    const img = el('img'); img.src = c.image || ''; d.appendChild(img)
-    const nm = el('div'); nm.textContent = c.name; nm.className='small'; nm.style.marginTop='6px'
-    d.appendChild(nm)
-    const btn = el('button'); btn.textContent='Remove'; btn.className='btn'; btn.style.marginTop='6px'
-    btn.onclick = ()=>{ chosenDeck.splice(i,1); renderSelectedDeck() }
-    d.appendChild(btn)
+    const d = el('div','card-item'); d.innerHTML=`<img src="${c.image}">`;
+    d.onclick = ()=>{ chosenDeck.splice(i,1); renderSelectedDeck() }
     selectedDeckEl.appendChild(d)
   })
   deckCountEl.textContent = chosenDeck.length
 }
 
-/* ===========================
-   Start duel: init players, shuffle, draw 5
-   =========================== */
 function startDuel(){
-  player.deck = chosenDeck.map(c=> ({...c, uid: c.uid}) )
-  shuffle(player.deck)
-  opp.deck = player.deck.map(c=> ({...c, uid: c.uid+'-opp'}))
-  shuffle(opp.deck)
-  player.hand = []; player.field = [null,0,null,null,null]; player.st=[null,null,null,null,null]; player.grave=[]
+  // Clone deck
+  player.deck = chosenDeck.map(c=>({...c})); shuffle(player.deck)
+  opp.deck = chosenDeck.map(c=>({...c})); shuffle(opp.deck) // Opp dùng chung deck cho test
+  
+  // Reset state
+  player.hand=[]; player.field=[null,null,null,null,null]; player.st=[null,null,null,null,null]; player.grave=[]
   opp.hand=[]; opp.field=[null,null,null,null,null]; opp.st=[null,null,null,null,null]; opp.grave=[]
-  player.lp=8000; opp.lp=8000; state.turn='player'; state.phase='MAIN'; state.selected=null; state.started=true
+  player.lp=8000; opp.lp=8000
+  state.turn='player'; state.phase='MAIN'; state.started=true;
 
-  // UI switch
-  document.getElementById('screen-deck').classList.add('hidden')
-  document.getElementById('screen-duel').classList.remove('hidden')
-
-  // initial draws
+  id('screen-deck').classList.add('hidden')
+  id('screen-duel').classList.remove('hidden')
+  
+  // Draw starting hands
   for(let i=0;i<5;i++){ drawCard('player',false); drawCard('opp',false) }
+  log('DUEL START! Your Turn.')
   renderAll()
-  log('Duel started. You draw 5. Your turn.')
 }
 
-/* ===========================
-   Draw / UI rendering
-   =========================== */
-function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } }
-function drawCard(who, showLog=true){
-  const P = who==='player'?player:opp
-  if(P.deck.length===0){ if(who==='player') log('Bạn không còn bài để rút'); return null }
-  const c = P.deck.pop()
-  P.hand.push(c)
-  if(showLog) log((who==='player'?'Bạn':'Opponent') + ' rút 1 bài.')
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}}
+function drawCard(who, logMsg=true){
+  const p = who==='player'?player:opp;
+  if(p.deck.length===0) return;
+  p.hand.push(p.deck.pop());
+  if(logMsg) log(`${who==='player'?'Bạn':'Opponent'} rút bài.`)
   renderAll()
-  return c
 }
 
 function renderAll(){
-  // LPs and counts
   id('plLP').textContent = player.lp; id('oppLP').textContent = opp.lp
+  if (checkGameEnd()) return;
   id('plDeckCnt').textContent = player.deck.length; id('oppDeckCnt').textContent = opp.deck.length
-  id('plGraveCnt').textContent = player.grave.length; id('oppGraveCnt').textContent = opp.grave.length
-  id('plGraveNum').textContent = player.grave.length + ' cards'; id('oppGraveNum').textContent = opp.grave.length + ' cards'
-  id('plGraveTop').textContent = player.grave.length ? player.grave[player.grave.length-1].name : '—'
-  id('oppGraveTop').textContent = opp.grave.length ? opp.grave[opp.grave.length-1].name : '—'
+  id('turnBadge').textContent = state.turn==='player'?'YOUR TURN':'OPP TURN'
   id('phaseName').textContent = state.phase
-  id('turnBadge').textContent = state.turn === 'player'? 'YOUR TURN':'OPP TURN'
-  id('selectedInfo').textContent = state.selected ? (state.selected.name || state.selected.uid) : '—'
+  id('selectedInfo').textContent = state.selected ? state.selected.name : 'None'
 
-  // render zones
-  renderZones('plMZ', player.field, 'player','mz')
-  renderZones('plST', player.st, 'player','st')
-  renderZones('oppMZ', opp.field, 'opp','mz')
-  renderZones('oppST', opp.st, 'opp','st')
+  // Render Zones (Truyền thêm class Grid tương ứng)
+  renderZoneGroup('plMZ', player.field, 'player', 'mz')
+  renderZoneGroup('plST', player.st, 'player', 'st')
+  renderZoneGroup('oppMZ', opp.field, 'opp', 'mz')
+  renderZoneGroup('oppST', opp.st, 'opp', 'st')
 
-  // hand
-  const handEl = id('hand'); handEl.innerHTML = ''
-  player.hand.forEach((c,idx)=>{
-    const card = el('div','hand-card'); card.draggable=true
-    card.dataset.uid = c.uid
-    const img = el('img'); img.src = c.image || ''; card.appendChild(img)
-    const nm = el('div'); nm.textContent = c.name; nm.className='small'; nm.style.padding='6px'; card.appendChild(nm)
-    // drag events
-    card.addEventListener('dragstart', (e)=>{
-      e.dataTransfer.setData('text/plain', JSON.stringify({uid:c.uid, who:'player'}))
-    })
-    handEl.appendChild(card)
+  // Graves
+  const plGraveImg = player.grave.length ? `<img src="${player.grave[player.grave.length-1].image}" style="width:100%;height:100%;object-fit:cover;border-radius:3px;opacity:0.8">` : '';
+  id('plGraveTop').innerHTML = plGraveImg;
+
+  const oppGraveImg = opp.grave.length ? `<img src="${opp.grave[opp.grave.length-1].image}" style="width:100%;height:100%;object-fit:cover;border-radius:3px;opacity:0.8">` : '';
+  id('oppGraveBox').innerHTML = `<div class="zone-label">GY</div>` + oppGraveImg;
+
+  // Hand Player
+  const h = id('hand'); h.innerHTML='';
+  player.hand.forEach(c=>{
+    const d = el('div','hand-card'); 
+    d.innerHTML=`<img src="${c.image}">`;
+    d.draggable=true;
+    d.ondragstart = (e)=> e.dataTransfer.setData('json', JSON.stringify({uid:c.uid, src:'hand'}))
+    // Click to summon (simple mode)
+    d.onclick = ()=>{
+         // Tự động tìm ô trống
+         if(state.turn!=='player' || state.phase!=='MAIN') return log('Không thể làm lúc này!')
+         if(c.atk !== undefined) playCard(c, 'mz'); else playCard(c, 'st');
+    }
+    h.appendChild(d)
+  })
+
+  // Hand Opponent (Visual)
+  const oh = id('oppHandVisual'); oh.innerHTML='';
+  opp.hand.forEach(()=> oh.appendChild(el('div','hand-card')))
+}
+
+function renderZoneGroup(domId, arr, owner, type){
+  const div = id(domId); div.innerHTML='';
+  arr.forEach((c, idx)=>{
+    // Tạo slot với class grid tương ứng (VD: player-mz-0)
+    // Cần đảo ngược thứ tự hiển thị cho đúng grid nếu cần, nhưng grid placement css đã lo rồi.
+    const slot = el('div', `zone-slot ${owner}-${type}-${idx}`);
+    slot.ondragover = (e)=>e.preventDefault();
+    slot.ondrop = (e)=> handleDrop(e, idx, type);
+    slot.onclick = ()=> handleZoneClick(owner, type, idx);
+
+    if(state.selected && state.selected.owner===owner && state.selected.idx===idx && state.selected.type===type){
+        slot.classList.add('active-zone');
+    }
+
+    if(c){
+        const cardDiv = el('div', 'card-in-zone');
+        if(c.facedown) cardDiv.classList.add('facedown');
+        else {
+          cardDiv.style.backgroundImage = `url('${c.image}')`;
+          cardDiv.style.backgroundSize = `contain`;
+          cardDiv.style.backgroundRepeat = `no-repeat`;
+
+        }
+        
+        // Attack/Def display
+        if(c.atk!==undefined && !c.facedown){
+            const stat = el('div'); 
+            stat.style.cssText='position:absolute;bottom:0;width:100%;background:rgba(0,0,0,0.7);color:#fff;font-size:9px;text-align:center';
+            stat.innerHTML = `ATK/${c.atk} DEF/${c.def}`;
+            cardDiv.appendChild(stat);
+        }
+        slot.appendChild(cardDiv);
+    }
+    div.appendChild(slot);
   })
 }
 
-/* Render zones helper */
-function renderZones(containerId, arr, ownerKey, type){
-  const container = id(containerId); container.innerHTML = ''
-  for(let i=0;i<5;i++){
-    const z = el('div','zone'); z.dataset.owner = ownerKey; z.dataset.type = type; z.dataset.idx = i
-    if(arr[i]){
-      const c = arr[i]
-      const cardBox = el('div', 'card ' + (c.facedown ? 'facedown' : ''));
-      if(c.image) { const im=el('img'); im.src=c.image; cardBox.appendChild(im) }
-      const name = el('div'); name.textContent = c.name; name.style.fontSize='12px'; cardBox.appendChild(name)
-if(ownerKey === 'player') {
-  cardBox.onclick = (e) => {
-    e.stopPropagation();
-    if (type === 'mz') {
-      state.selected = { uid: c.uid, owner: 'player', idx: i, name: c.name, type: type };
-      log('Selected monster: ' + c.name);
-      renderAll();
-    }
-    else if (type === 'st') {
-      if (confirm(`Bạn có muốn kích hoạt lá bài "${c.name}" không?`)) {
-        activateSpellTrap('player', i);
-      }
-    }
-  }
-} else {
-        cardBox.onclick = (e)=>{
-          e.stopPropagation()
-          if(state.selected && state.selected.owner==='player' && state.selected.type==='mz'){
-            attack('player', state.selected.idx, 'opp', i)
-            state.selected = null
-            renderAll()
-          }
-        }
-      }
-      z.appendChild(cardBox)
-    } else {
-      z.classList.add('empty')
-    }
+function handleDrop(e, idx, type){
+   if(state.turn!=='player' || state.phase!=='MAIN') return
+   const data = JSON.parse(e.dataTransfer.getData('json'))
+   if(data.src==='hand'){
+       const cardIdx = player.hand.findIndex(x=>x.uid===data.uid);
+       if(cardIdx<0) return;
+       const card = player.hand[cardIdx];
+       
+       if(type==='mz' && !card.atk) return log('Spell/Trap không thể đặt vào ô quái!');
+       if(type==='st' && card.atk) return log('Quái thú không thể đặt vào ô phép!');
 
-    z.addEventListener('dragover', (e)=> e.preventDefault())
-    z.addEventListener('drop', (e)=>{
-      e.preventDefault()
-      if(state.turn !== 'player') { log('Không phải lượt bạn'); return }
-      if(state.phase !== 'MAIN') { log('Chỉ có thể triệu hồi/đặt ở MAIN phase'); return }
-      try{
-        const dat = JSON.parse(e.dataTransfer.getData('text/plain'))
-        if(dat.who !== 'player') return
-        const cardIdx = player.hand.findIndex(x=>x.uid===dat.uid)
-        if(cardIdx===-1) return
-        const card = player.hand[cardIdx]
-        if(type==='mz'){
-          if(player.field[i]) { log('Ô đã có quái'); return }
-          player.field[i] = card
-          player.hand.splice(cardIdx,1)
-          log('Bạn triệu hồi ' + card.name + ' lên Monster Zone #' + (i+1))
-        } else { 
-          if(player.st[i]) { log('Ô ST đã có bài'); return }
-          const setCard = {...card, facedown:true}
-          player.st[i] = setCard
-          player.hand.splice(cardIdx,1)
-          log('Bạn đặt 1 Spell/Trap xuống ô #' + (i+1))
-        }
-        renderAll()
-      }catch(err){
-        console.error(err)
-      }
-    })
-
-    container.appendChild(z)
-  }
+       player.field[idx] && type==='mz' ? log('Ô đã có bài') : null; // Simple check
+       if(type==='mz' && !player.field[idx]) {
+           player.field[idx] = card; player.hand.splice(cardIdx,1);
+           log(`Summon ${card.name}`);
+       }
+       if(type==='st' && !player.st[idx]) {
+           player.st[idx] = {...card, facedown:true}; player.hand.splice(cardIdx,1);
+           log(`Set ${card.name}`);
+       }
+       renderAll();
+   }
 }
 
-/* ===========================
-   Attack logic & resolution
-   =========================== */
-function attack(attOwner, attIdx, defOwner, defIdx){
-  const attacker = (attOwner==='player')?player.field[attIdx]:opp.field[attIdx]
-  const defender = (defOwner==='player')?player.field[defIdx]:opp.field[defIdx]
-  if(!attacker){ log('No attacker'); return }
-  if(!defender){
-    // direct attack
-    if(defOwner==='player'){ player.lp -= attacker.atk || 0; log('Opponent attacks directly: -' + (attacker.atk||0) + ' LP'); }
-    else { opp.lp -= attacker.atk || 0; log('You attack directly: -' + (attacker.atk||0) + ' LP') }
-    checkWin()
-    renderAll()
-    return
-  }
-  // compare ATK
-  const aAtk = attacker.atk || 0, dAtk = defender.atk || 0
-  if(aAtk > dAtk){
-    const diff = aAtk - dAtk
-    if(defOwner==='player'){ player.field[defIdx] = null; player.grave.push(defender); player.lp -= diff; log(attacker.name + ' destroys ' + defender.name + '. You -' + diff + ' LP') }
-    else { opp.field[defIdx] = null; opp.grave.push(defender); opp.lp -= diff; log(attacker.name + ' destroys ' + defender.name + '. Opponent -' + diff + ' LP') }
-  } else if(aAtk < dAtk){
-    const diff = dAtk - aAtk
-    if(attOwner==='player'){ player.field[attIdx] = null; player.grave.push(attacker); player.lp -= diff; log(defender.name + ' wins. You -' + diff + ' LP') }
-    else { opp.field[attIdx] = null; opp.grave.push(attacker); opp.lp -= diff; log(defender.name + ' wins. Opponent -' + diff + ' LP') }
-  } else {
-    if(attOwner==='player'){ player.field[attIdx]=null; player.grave.push(attacker) }
-    else opp.field[attIdx]=null
-    if(defOwner==='player'){ player.field[defIdx]=null; player.grave.push(defender) }
-    else opp.field[defIdx]=null
-    if(defOwner==='player') log('Both destroyed (tie).')
-    else log('Both destroyed (tie).')
-  }
-  checkWin()
-}
-
-
-function activateSpellTrap(owner, idx) {
-  const p = owner==='player' ? player : opp;
-  const card = p.st[idx];
-  if(!card) return;
-  delete card.facedown;
-  let msg = "";
-  if(cardEffects[card.name]) {
-    msg = cardEffects[card.name](owner);
-  } else {
-    msg = "Đã kích hoạt (Effect chưa được lập trình).";
-  }
-
-  log(`Kích hoạt ${card.name}: ${msg}`);
-  p.grave.push(card);
-  p.st[idx] = null;
-
-  // 4. Cập nhật giao diện
-  checkWin();
-  renderAll();
-}
-
-/* ===========================
-   Turn flow & Opponent AI
-   =========================== */
-id('btnDraw').onclick = ()=> {
-  if(state.turn !== 'player') return log('Chưa đến lượt bạn')
-  drawCard('player')
-}
-id('btnEnd').onclick = ()=> {
-  if(state.turn !== 'player') return log('Chưa đến lượt bạn')
-  endPlayerTurn()
-}
-id('btnToBattle').onclick = ()=> {
-  if(state.turn !== 'player') return log('Chưa đến lượt bạn')
-  state.phase = 'BATTLE'
-  log('Entro Battle Phase')
-  renderAll()
-}
-
-function endPlayerTurn(){
-  state.turn = 'opp'; state.phase='DRAW'; renderAll(); log('Bạn kết thúc lượt. Opponent turn.')
-  setTimeout(()=> oppTurnSequence(), 800)
-}
-
-async function oppTurnSequence(){
-  drawCard('opp', true)
-  for(let i=0;i<5;i++){
-    if(opp.field[i]==null){
-      const idx = opp.hand.findIndex(c=>c.atk !== undefined)
-      if(idx!==-1){
-        opp.field[i] = opp.hand.splice(idx,1)[0]
-        log('Opponent triệu hồi 1 quái.')
-        break
-      }
-    }
-  }
-  for(let i=0;i<5;i++){
-    const m = opp.field[i]
-    if(!m) continue
-    let targetIdx = player.field.findIndex(c=>c && (m.atk > (c.atk||0)))
-    if(targetIdx === -1){
-      if(player.field.every(x=>x==null)){
-        attack('opp', i, 'player', null)
-      } else {
-        targetIdx = player.field.findIndex(c=>c!=null)
-        if(targetIdx !== -1) attack('opp', i, 'player', targetIdx)
-      }
-    } else {
-      attack('opp', i, 'player', targetIdx)
-    }
-  }
-  state.turn = 'player'
-  state.phase = 'MAIN'
-  renderAll()
-  log('Lượt bạn.')
-}
-
-/* ===========================
-   Win check / reset
-   =========================== */
-function checkWin(){
-  if(player.lp <= 0){ alert('Bạn thua!'); resetAll(); }
-  if(opp.lp <= 0){ alert('Bạn thắng!'); resetAll(); }
-}
-
-function resetAll(){
-  chosenDeck=[]; player={}; opp={}; state={}; location.reload()
-}
-
-/* ===========================
-   Init UI helpers & initial render
-   =========================== */
-function idExists(idv){ return document.getElementById(idv) !== null }
-function setupZonesEmpty(){
-  ['plMZ','plST','oppMZ','oppST'].forEach(idv=>{
-    const node = document.getElementById(idv)
-    if(node) node.innerHTML = ''
-    for(let i=0;i<5;i++){
-    }
-  })
-}
-
-/* ===========================
-   CƠ CHẾ TẤN CÔNG TRỰC TIẾP
-   =========================== */
-if(id('oppInfo')){
-  id('oppInfo').onclick = function() {
-    if(!state.selected || state.selected.owner !== 'player' || state.selected.type !== 'mz') return;
-
-    if(state.turn !== 'player') { log('Không phải lượt của bạn'); return; }
-    if(state.phase !== 'BATTLE') { log('Phải vào Battle Phase mới được tấn công'); return; }
-
-    const hasMonster = opp.field.some(card => card !== null);
+function playCard(card, type){
+    // Auto find slot logic simpler for clicking
+    const arr = type==='mz'?player.field:player.st;
+    const emptyIdx = arr.findIndex(x=>x===null);
+    if(emptyIdx===-1) return log('Hết chỗ trống!');
     
-    if(hasMonster) {
-      log('Đối phương còn quái thú, phải tiêu diệt quái trước!');
-      return; 
-    }
-    attack('player', state.selected.idx, 'opp', -1);
-
-    state.selected = null;
+    const hIdx = player.hand.indexOf(card);
+    if(hIdx>-1) player.hand.splice(hIdx,1);
+    
+    if(type==='st') arr[emptyIdx] = {...card, facedown:true};
+    else arr[emptyIdx] = card;
+    
+    log(`${type==='mz'?'Summon':'Set'} ${card.name}`);
     renderAll();
-  };
 }
-renderAll()
-log('Ready. Build deck then Start Duel.')
 
-/* ===========================
-   Helper: add quick logs to UI
-   =========================== */
-function logStart(){ log('Game ready') }
+function handleZoneClick(owner, type, idx){
+    const arr = owner==='player' ? (type==='mz'?player.field:player.st) : (type==='mz'?opp.field:opp.st);
+    const card = arr[idx];
+    
+    // Select card logic
+    if(owner==='player' && card){
+        if(type==='st' && card.facedown){
+            if(confirm(`Kích hoạt ${card.name}?`)){
+                delete card.facedown;
+                log(`Kích hoạt Spell: ${card.name}`);
+                // Effect giả lập: Hủy bài đối phương nếu là Raigeki
+                if(card.name==='Raigeki') { opp.field=[null,null,null,null,null]; log('Raigeki hủy diệt quái đối thủ!'); }
+                // Sau khi dùng thì xuống mộ
+                setTimeout(()=>{
+                    player.grave.push(card); arr[idx]=null; renderAll();
+                }, 1000);
+            }
+        } else {
+            state.selected = {owner, type, idx, name: card.name, atk: card.atk};
+            log(`Chọn: ${card.name}`);
+        }
+    }
+    
+    // Attack logic
+    if(owner==='opp' && type==='mz' && state.selected && state.selected.owner==='player' && state.turn==='player' && state.phase==='BATTLE'){
+        // Battle
+        const myMon = player.field[state.selected.idx];
+        const oppMon = opp.field[idx];
+        if(!myMon) return;
+        
+        log(`${myMon.name} tấn công ${oppMon?oppMon.name:'trực tiếp'}!`);
+        // Logic đơn giản: ATK vs ATK
+        if(oppMon){
+            if((myMon.atk||0) > (oppMon.atk||0)){
+                const dmg = (myMon.atk||0) - (oppMon.atk||0);
+                opp.lp -= dmg;
+                opp.grave.push(oppMon); opp.field[idx]=null;
+                log(`Thắng chiến đấu! Opponent -${dmg} LP`);
+            } else if ((myMon.atk||0) < (oppMon.atk||0)){
+                const dmg = (oppMon.atk||0) - (myMon.atk||0);
+                player.lp -= dmg;
+                player.grave.push(myMon); player.field[state.selected.idx]=null;
+                log(`Thua chiến đấu! Bạn -${dmg} LP`);
+            } else {
+                opp.grave.push(oppMon); opp.field[idx]=null;
+                player.grave.push(myMon); player.field[state.selected.idx]=null;
+                log(`Hòa! Cả 2 cùng chết.`);
+            }
+        } else {
+            opp.lp -= (myMon.atk||0);
+            log(`Tấn công trực tiếp! -${myMon.atk} LP`);
+        }
+        state.selected = null;
+    }
+    renderAll();
+}
 
+// Attack Direct (Click avatar đối thủ)
+id('info-opp').onclick = ()=>{
+    if(state.turn==='player' && state.phase==='BATTLE' && state.selected && state.selected.type==='mz'){
+        // Check if opp has monster
+        if(opp.field.some(x=>x!==null)) return log('Đối thủ còn quái, không thể đánh trực tiếp!');
+        const myMon = player.field[state.selected.idx];
+        opp.lp -= (myMon.atk||0);
+        log(`${myMon.name} tấn công trực tiếp! -${myMon.atk} LP`);
+        state.selected = null;
+        renderAll();
+    }
+}
+
+id('btnDraw').onclick = ()=> drawCard('player');
+id('btnToBattle').onclick = ()=> { state.phase='BATTLE'; renderAll(); log('Vào Battle Phase'); }
+id('btnEnd').onclick = ()=> { 
+    state.turn='opp'; state.phase='DRAW'; renderAll(); log('Kết thúc lượt.');
+    setTimeout(oppAI, 1000);
+}
+
+function oppAI(){
+    drawCard('opp');
+    // Summon random
+    const monIdx = opp.hand.findIndex(c=>c.atk!==undefined);
+    if(monIdx>-1){
+        const empty = opp.field.findIndex(x=>x===null);
+        if(empty>-1){
+            opp.field[empty] = opp.hand.splice(monIdx,1)[0];
+            log(`Opponent summon ${opp.field[empty].name}`);
+        }
+    }
+    renderAll();
+    setTimeout(()=>{
+        state.turn='player'; state.phase='MAIN'; log('Lượt của bạn.'); renderAll();
+    }, 1500);
+}
+
+function checkGameEnd() {
+    // Nếu game chưa bắt đầu hoặc đã kết thúc thì bỏ qua
+    if (!state.started) return false;
+
+    // Kiểm tra LP
+    if (player.lp <= 0 || opp.lp <= 0) {
+        state.started = false; // Dừng trạng thái game
+
+        // Cập nhật giao diện lần cuối để hiển thị số 0 hoặc âm
+        id('plLP').textContent = player.lp;
+        id('oppLP').textContent = opp.lp;
+
+        // Dùng setTimeout để giao diện kịp hiển thị điểm số trước khi hiện thông báo
+        setTimeout(() => {
+            if (player.lp <= 0 && opp.lp <= 0) {
+                alert("KẾT QUẢ: HÒA (DRAW)!");
+            } else if (player.lp <= 0) {
+                alert("KẾT QUẢ: BẠN ĐÃ THUA (DEFEAT)!");
+            } else {
+                alert("KẾT QUẢ: BẠN ĐÃ THẮNG (VICTORY)!");
+            }
+            // Tải lại trang để chơi mới
+            location.reload();
+        }, 500);
+        return true;
+    }
+    return false;
+}
 </script>
 </body>
 </html>
