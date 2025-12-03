@@ -222,9 +222,133 @@ body {
 @keyframes draw { from { transform: translateY(-100px); opacity:0; } to { transform: translateY(0); opacity:1; } }
 .hand-card { animation: draw 0.3s ease-out; }
 
+
+
+/* --- MOBILE LANDSCAPE OPTIMIZATION --- */
+@media only screen and (max-height: 500px) and (orientation: landscape) {
+    
+    /* 1. Tinh chỉnh khung bao quanh để không bị cuộn trang */
+    #screen-duel {
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+    }
+
+    /* 2. Biến đổi bàn cờ: Bỏ 3D, thu nhỏ lại và căn giữa */
+    .duel-field {
+        align-items: flex-start; /* Đẩy bàn cờ lên phía trên */
+        padding-top: 5px;
+        height: 100%;
+    }
+    .board-mat {
+        /* Quan trọng: Thu nhỏ bàn cờ xuống 55% và bỏ xoay 3D */
+        transform: scale(0.55) rotateX(0deg) translateY(0); 
+        transform-origin: top center; /* Thu nhỏ từ cạnh trên */
+        margin-bottom: -300px; /* Kéo các phần tử bên dưới lên vì bàn cờ đã thu nhỏ */
+        box-shadow: none; /* Bỏ bóng cho nhẹ máy */
+    }
+
+    /* 3. Thu gọn thông tin người chơi (LP, Avatar) */
+    .player-info {
+        width: 180px;
+        padding: 4px 8px;
+        gap: 8px;
+        background: rgba(0,0,0,0.9);
+        border: 1px solid #444;
+    }
+    .player-info img { width: 35px; height: 35px; border-width: 1px; }
+    .player-name { font-size: 10px; display: none; /* Ẩn tên để tiết kiệm chỗ */ }
+    .lp-val { font-size: 18px; }
+
+    /* Đặt Đối thủ ở góc TRÁI TRÊN */
+    #info-opp {
+        top: 5px; left: 5px; right: auto;
+        flex-direction: row; /* Xếp ngang bình thường */
+        z-index: 200;
+    }
+    
+    /* Đặt Người chơi ở góc TRÁI DƯỚI */
+    #info-player {
+        bottom: 5px; left: 5px; top: auto;
+        z-index: 200;
+    }
+
+    /* 4. Xử lý bộ bài trên tay (Hand) */
+    .hand-container#hand {
+        bottom: 0;
+        left: auto; 
+        right: 0; /* Dồn về bên phải */
+        transform: none; /* Bỏ căn giữa cũ */
+        width: 65%; /* Chỉ chiếm 65% màn hình bên phải */
+        justify-content: flex-end; /* Căn bài sang phải */
+        padding-right: 10px;
+        z-index: 300;
+    }
+    .hand-card {
+        width: 55px; height: 80px; /* Thu nhỏ lá bài trên tay */
+    }
+    /* Khi hover thì phóng to lên để xem */
+    .hand-card:hover {
+        transform: translateY(-50px) scale(1.5);
+        z-index: 999;
+    }
+
+    /* 5. Bộ điều khiển (Nút bấm) */
+    .controls-area {
+        top: 5px; right: 5px; bottom: auto; /* Đưa lên góc PHẢI TRÊN */
+        flex-direction: row; /* Xếp nút nằm ngang */
+        transform: scale(0.8); /* Thu nhỏ nút một chút */
+        transform-origin: top right;
+    }
+    
+    /* 6. Ẩn các thành phần không quan trọng để thoáng màn hình */
+    .phase-bar { display: none; } /* Ẩn thanh Phase */
+    .log-box { display: none; } /* Ẩn Log chat */
+    #turnBadge { font-size: 10px; }
+
+    /* 7. Chỉnh lại Hand đối thủ (chỉ để trang trí) */
+    .opp-hand {
+        top: -40px; /* Giấu bớt lên trên */
+        transform: scale(0.6);
+    }
+}
+
+/* Nút phủ toàn màn hình khi xoay ngang */
+#fullscreen-request {
+    display: none; /* Mặc định ẩn */
+}
+
+@media only screen and (max-height: 500px) and (orientation: landscape) {
+    /* Chỉ hiện khi xoay ngang trên mobile */
+    #fullscreen-request {
+        display: flex;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.85);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        color: #fff;
+        text-align: center;
+        cursor: pointer;
+    }
+    #fullscreen-request h3 { margin: 0 0 10px 0; color: #ffd166; font-size: 24px; }
+    #fullscreen-request p { margin: 0; color: #ccc; font-size: 14px; }
+    
+    /* Khi đã fullscreen rồi thì ẩn lớp phủ này đi */
+    :fullscreen #fullscreen-request { display: none !important; }
+    :-webkit-full-screen #fullscreen-request { display: none !important; }
+}
+
 </style>
 </head>
 <body>
+<div id="fullscreen-request" onclick="toggleFullScreen()">
+    <p>Simple YGO</p>
+    <button class = "splash_enter">Vào Game</button>
+</div>
 
 <div id="screen-deck">
     <div class="deck-header">
@@ -682,6 +806,42 @@ function checkGameEnd() {
     }
     return false;
 }
+
+
+/* --- FULLSCREEN LOGIC --- */
+function toggleFullScreen() {
+    var doc = window.document;
+    var docEl = doc.documentElement;
+
+    var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+    var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+    if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+        // Nếu chưa fullscreen thì bật lên
+        if(requestFullScreen) requestFullScreen.call(docEl);
+        // Sau khi bật thì ẩn cái overlay đi
+        id('fullscreen-request').style.display = 'none';
+    } else {
+        // Nếu đang fullscreen thì tắt (nếu cần)
+        if(cancelFullScreen) cancelFullScreen.call(doc);
+    }
+}
+
+// Lắng nghe sự kiện thay đổi kích thước/xoay để hiện lại overlay nếu bị thoát fullscreen
+window.addEventListener('resize', function(){
+    // Kiểm tra nếu đang xoay ngang và chưa fullscreen
+    if(window.innerHeight < 500 && window.innerWidth > window.innerHeight) {
+        if(!document.fullscreenElement && !document.webkitFullscreenElement) {
+             id('fullscreen-request').style.display = 'flex';
+        } else {
+             id('fullscreen-request').style.display = 'none';
+        }
+    } else {
+        // Màn hình dọc thì ẩn luôn
+        id('fullscreen-request').style.display = 'none';
+    }
+});
+
 </script>
 </body>
 </html>
