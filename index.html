@@ -40,7 +40,7 @@ body {
 
 #screen-deck {
     max-width: 1200px; margin: 20px auto; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px;
-    height: 90vh; overflow-y: auto; display: flex; flex-direction: column;
+    height: 90vh; overflow-y: auto; display: none; flex-direction: column;
 }
 .deck-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #555; padding-bottom: 10px;}
 .search-bar { display: flex; gap: 10px; margin-bottom: 15px; }
@@ -318,14 +318,15 @@ body {
     display: none; /* Mặc định ẩn */
 }
 
-@media only screen and (max-height: 500px) and (orientation: landscape) {
+/* @media only screen and (max-height: 500px) and (orientation: landscape) { */
     /* Chỉ hiện khi xoay ngang trên mobile */
     #fullscreen-request {
         display: flex;
         position: fixed;
         top: 0; left: 0;
         width: 100vw; height: 100vh;
-        background: rgba(0,0,0,0.85);
+        background: url("bg.jpg");
+        background-size: cover;
         z-index: 9999;
         align-items: center;
         justify-content: center;
@@ -334,22 +335,51 @@ body {
         text-align: center;
         cursor: pointer;
     }
+    .splash_enter {
+        padding: 15px 30px;
+        font-size: 20px;
+        background: rgba(0,0,0,0.6);
+        border: 2px solid #fff;
+        border-radius: 8px;
+        color: #ffd166;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 0 10px #fff;
+    }
     #fullscreen-request h3 { margin: 0 0 10px 0; color: #ffd166; font-size: 24px; }
     #fullscreen-request p { margin: 0; color: #ccc; font-size: 14px; }
     
     /* Khi đã fullscreen rồi thì ẩn lớp phủ này đi */
     :fullscreen #fullscreen-request { display: none !important; }
     :-webkit-full-screen #fullscreen-request { display: none !important; }
+/* } */
+
+.intro {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: #000;
+    z-index: 10000; /* Đè lên tất cả */
+    display: none; /* Mặc định ẩn */
+    align-items: center;
+    justify-content: center;
+}
+.intro video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Giữ tỷ lệ video */
 }
 
 </style>
 </head>
 <body>
-<div id="fullscreen-request" onclick="toggleFullScreen()">
-    <p>Simple YGO</p>
-    <button class = "splash_enter">Vào Game</button>
+<div id="fullscreen-request">
+    <button class="splash_enter" onclick="playIntro()">Link Started</button>
 </div>
 
+<div class="intro" id="intro-layer">
+    <video id="intro-video" src="intro.mp4"></video> 
+</div>
 <div id="screen-deck">
     <div class="deck-header">
         <h2 style="color:#ffd166; margin:0">Yu-Gi-Oh! Deck Build</h2>
@@ -841,7 +871,47 @@ window.addEventListener('resize', function(){
         id('fullscreen-request').style.display = 'none';
     }
 });
+function playIntro() {
+    // 1. Kích hoạt Fullscreen (Logic cũ của bạn)
+    toggleFullScreen();
 
+    // 2. Ẩn nút Link Started
+    document.getElementById('fullscreen-request').style.display = 'none';
+
+    // 3. Hiện lớp Video
+    const introLayer = document.getElementById('intro-layer');
+    const vid = document.getElementById('intro-video');
+    
+    introLayer.style.display = 'flex';
+
+    // 4. Bắt đầu phát video
+    vid.play().catch(e => {
+        console.log("Trình duyệt chặn tự phát video:", e);
+        // Nếu lỗi (do policy trình duyệt), ta cứ cho vào game luôn
+        enterDeckScreen();
+    });
+
+    // 5. Khi video kết thúc -> Vào màn hình chọn bài
+    vid.onended = function() {
+        enterDeckScreen();
+    };
+    
+    // (Tùy chọn) Cho phép click vào video để bỏ qua (Skip)
+    introLayer.onclick = function() {
+        vid.pause();
+        enterDeckScreen();
+    }
+}
+
+function enterDeckScreen() {
+    // Ẩn video
+    document.getElementById('intro-layer').style.display = 'none';
+    
+    // Hiện màn hình Deck (chuyển sang flex như style gốc)
+    const deckScreen = document.getElementById('screen-deck');
+    deckScreen.style.display = 'flex';
+    deckScreen.classList.remove('hidden');
+}
 </script>
 </body>
 </html>
