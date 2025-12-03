@@ -490,6 +490,8 @@ body {
 const API_BASE = 'https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=';
 const MAX_DECK = 20;
 
+let hasEnteredGame = false;
+
 function id(x){return document.getElementById(x)}
 function el(tag,cls){const d=document.createElement(tag); if(cls) d.className=cls; return d}
 function log(msg){ 
@@ -509,14 +511,14 @@ const cardGrid = id('cardGrid'), selectedDeckEl = id('selectedDeck'), deckCountE
 
 id('btnSearch').onclick = async () => {
   const q = id('searchInput').value.trim()
-  if(!q) return alert('Nhập tên bài để tìm!')
+  if(!q) return showAlertAndResumeFullscreen('Nhập tên bài để tìm!')
   await searchAndShow(q)
 }
 id('btnRandom').onclick = ()=> {
   const samples = [
     {id:'c1',name:'Dark Magician',atk:2500,def:2100,image:'https://images.ygoprodeck.com/images/cards/46986414.jpg'},
     {id:'c2',name:'Blue-Eyes White Dragon',atk:3000,def:2500,image:'https://images.ygoprodeck.com/images/cards/89631139.jpg'},
-    {id:'c3',name:'Mirror Force',image:'https://images.ygoprodeck.com/images/cards/44095760.jpg'},
+    {id:'c3',name:'Mirror Force',image:'https://images.ygoprodeck.com/images/cards/44095762.jpg'},
     {id:'c4',name:'Pot of Greed',image:'https://images.ygoprodeck.com/images/cards/55144522.jpg'},
     {id:'c5',name:'Summoned Skull',atk:2500,def:1200,image:'https://images.ygoprodeck.com/images/cards/70781052.jpg'}
   ]
@@ -524,7 +526,7 @@ id('btnRandom').onclick = ()=> {
 }
 id('clearDeck').onclick = ()=> { chosenDeck=[]; renderSelectedDeck(); }
 id('btnStart').onclick = ()=> {
-  if(chosenDeck.length < 5) return alert('Bộ bài cần ít nhất 5 lá!')
+  if(chosenDeck.length < 5) return showAlertAndResumeFullscreen('Bộ bài cần ít nhất 5 lá!')
   startDuel()
 }
 
@@ -548,7 +550,7 @@ function renderCardResults(arr){
     const d = el('div','card-item'); 
     d.innerHTML = `<img src="${c.image}"><div class="small">${c.name}</div>`
     d.onclick = ()=>{
-       if(chosenDeck.length>=MAX_DECK) return alert('Deck đầy!')
+       if(chosenDeck.length>=MAX_DECK) return showAlertAndResumeFullscreen('Deck đầy!')
        chosenDeck.push({...c, uid: Math.random().toString(36).substr(2,9)})
        renderSelectedDeck()
     }
@@ -713,7 +715,13 @@ function playCard(card, type){
     log(`${type==='mz'?'Summon':'Set'} ${card.name}`);
     renderAll();
 }
-
+function showConfirmAndResumeFullscreen(message) {
+    const result = confirm(message);
+    if (typeof hasEnteredGame !== 'undefined' && hasEnteredGame) {
+        setTimeout(toggleFullScreen, 0); 
+    }
+    return result; 
+}
 function handleZoneClick(owner, type, idx){
     const arr = owner==='player' ? (type==='mz'?player.field:player.st) : (type==='mz'?opp.field:opp.st);
     const card = arr[idx];
@@ -721,7 +729,7 @@ function handleZoneClick(owner, type, idx){
     // Select card logic
     if(owner==='player' && card){
         if(type==='st' && card.facedown){
-            if(confirm(`Kích hoạt ${card.name}?`)){
+            if(showConfirmAndResumeFullscreen(`Kích hoạt ${card.name}?`)){
                 delete card.facedown;
                 log(`Kích hoạt Spell: ${card.name}`);
                 // Effect giả lập: Hủy bài đối phương nếu là Raigeki
@@ -823,11 +831,11 @@ function checkGameEnd() {
         // Dùng setTimeout để giao diện kịp hiển thị điểm số trước khi hiện thông báo
         setTimeout(() => {
             if (player.lp <= 0 && opp.lp <= 0) {
-                alert("KẾT QUẢ: HÒA (DRAW)!");
+                showAlertAndResumeFullscreen("KẾT QUẢ: HÒA (DRAW)!");
             } else if (player.lp <= 0) {
-                alert("KẾT QUẢ: BẠN ĐÃ THUA (DEFEAT)!");
+                showAlertAndResumeFullscreen("KẾT QUẢ: BẠN ĐÃ THUA (DEFEAT)!");
             } else {
-                alert("KẾT QUẢ: BẠN ĐÃ THẮNG (VICTORY)!");
+                showAlertAndResumeFullscreen("KẾT QUẢ: BẠN ĐÃ THẮNG (VICTORY)!");
             }
             // Tải lại trang để chơi mới
             location.reload();
@@ -859,6 +867,10 @@ function toggleFullScreen() {
 
 // Lắng nghe sự kiện thay đổi kích thước/xoay để hiện lại overlay nếu bị thoát fullscreen
 window.addEventListener('resize', function(){
+
+    if (hasEnteredGame) {
+        return; 
+    }
     // Kiểm tra nếu đang xoay ngang và chưa fullscreen
     if(window.innerHeight < 500 && window.innerWidth > window.innerHeight) {
         if(!document.fullscreenElement && !document.webkitFullscreenElement) {
@@ -904,6 +916,7 @@ function playIntro() {
 }
 
 function enterDeckScreen() {
+    hasEnteredGame = true;
     // Ẩn video
     document.getElementById('intro-layer').style.display = 'none';
     
@@ -911,6 +924,13 @@ function enterDeckScreen() {
     const deckScreen = document.getElementById('screen-deck');
     deckScreen.style.display = 'flex';
     deckScreen.classList.remove('hidden');
+}
+
+function showAlertAndResumeFullscreen(message) {
+    alert(message);
+    if (typeof hasEnteredGame !== 'undefined' && hasEnteredGame) {
+        setTimeout(toggleFullScreen, 0);
+    }
 }
 </script>
 </body>
