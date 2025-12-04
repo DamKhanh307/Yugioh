@@ -19,7 +19,8 @@
 * { box-sizing: border-box; }
 body {
     margin: 0;
-    background: radial-gradient(circle, #4caf50 0%, #1b5e20 100%);     color: var(--text-color);
+    background: url("chisa.jpg");
+    background-size: cover;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     overflow: hidden;     height: 100vh;
 }
@@ -89,7 +90,7 @@ body {
 .board-mat {
     width: 900px;
     height: 640px;
-    background: var(--board-mat);
+    /* background: var(--board-mat); */
     border: 8px solid #1a1410;
     border-radius: 4px;
     box-shadow: 0 20px 50px rgba(0,0,0,0.8);
@@ -486,6 +487,8 @@ body {
 
 </div>
 
+
+
 <script>
 const API_BASE = 'https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=';
 const MAX_DECK = 20;
@@ -505,7 +508,8 @@ function log(msg){
 let chosenDeck = [];
 let player = { lp:8000, deck:[], hand:[], field:[null,null,null,null,null], st:[null,null,null,null,null], grave:[] }
 let opp = { lp:8000, deck:[], hand:[], field:[null,null,null,null,null], st:[null,null,null,null,null], grave:[] }
-let state = { turn:'player', phase:'MAIN', selected:null, started:false }
+let state = { turn:'player', phase:'MAIN', selected:null, started:false, firstTurn:true, hasDrawn:false,normalSummonUsed: false}
+
 
 const cardGrid = id('cardGrid'), selectedDeckEl = id('selectedDeck'), deckCountEl = id('deckCount')
 
@@ -577,7 +581,11 @@ function startDuel(){
   player.hand=[]; player.field=[null,null,null,null,null]; player.st=[null,null,null,null,null]; player.grave=[]
   opp.hand=[]; opp.field=[null,null,null,null,null]; opp.st=[null,null,null,null,null]; opp.grave=[]
   player.lp=8000; opp.lp=8000
-  state.turn='player'; state.phase='MAIN'; state.started=true;
+  state.turn='player';
+  state.phase='MAIN'; 
+  state.started=true;
+  state.firstTurn = true;
+  state.hasDrawn = true;
 
   id('screen-deck').classList.add('hidden')
   id('screen-duel').classList.remove('hidden')
@@ -637,6 +645,19 @@ function renderAll(){
   // Hand Opponent (Visual)
   const oh = id('oppHandVisual'); oh.innerHTML='';
   opp.hand.forEach(()=> oh.appendChild(el('div','hand-card')))
+
+
+  // Cập nhật tên nút Battle theo phase
+    if (state.phase === 'MAIN') {
+        id('btnToBattle').textContent = "Battle Phase";
+    } 
+    else if (state.phase === 'BATTLE') {
+        id('btnToBattle').textContent = "Main Phase 2";
+    } 
+    else if (state.phase === 'MAIN2') {
+        id('btnToBattle').textContent = "Main Phase 2";
+    }
+
 }
 
 function renderZoneGroup(domId, arr, owner, type){
@@ -676,45 +697,82 @@ function renderZoneGroup(domId, arr, owner, type){
   })
 }
 
-function handleDrop(e, idx, type){
-   if(state.turn!=='player' || state.phase!=='MAIN') return
-   const data = JSON.parse(e.dataTransfer.getData('json'))
-   if(data.src==='hand'){
-       const cardIdx = player.hand.findIndex(x=>x.uid===data.uid);
-       if(cardIdx<0) return;
-       const card = player.hand[cardIdx];
-       
-       if(type==='mz' && !card.atk) return log('Spell/Trap không thể đặt vào ô quái!');
-       if(type==='st' && card.atk) return log('Quái thú không thể đặt vào ô phép!');
+    function handleDrop(e, idx, type){
+    if(state.turn!=='player' || state.phase!=='MAIN') return
+    const data = JSON.parse(e.dataTransfer.getData('json'))
+    if(data.src==='hand'){
+        const cardIdx = player.hand.findIndex(x=>x.uid===data.uid);
+        if(cardIdx<0) return;
+        const card = player.hand[cardIdx];
+        
+        if(type==='mz' && !card.atk) return log('Spell/Trap không thể đặt vào ô quái!');
+        if(type==='st' && card.atk) return log('Quái thú không thể đặt vào ô phép!');
 
-       player.field[idx] && type==='mz' ? log('Ô đã có bài') : null; // Simple check
-       if(type==='mz' && !player.field[idx]) {
-           player.field[idx] = card; player.hand.splice(cardIdx,1);
-           log(`Summon ${card.name}`);
-       }
-       if(type==='st' && !player.st[idx]) {
-           player.st[idx] = {...card, facedown:true}; player.hand.splice(cardIdx,1);
-           log(`Set ${card.name}`);
-       }
-       renderAll();
-   }
-}
+        player.field[idx] && type==='mz' ? log('Ô đã có bài') : null; // Simple check
+        if(type==='mz' && !player.field[idx]) {
+
+            if (state.normalSummonUsed) {
+                log("Bạn chỉ được triệu hồi 1 lần mỗi lượt!");
+                return;
+            }
+
+            player.field[idx] = card; 
+            player.hand.splice(cardIdx,1);
+            state.normalSummonUsed = true;
+            log(`Triệu hồi ${card.name}`);
+        }
+
+        if(type==='st' && !player.st[idx]) {
+            player.st[idx] = {...card, facedown:true}; player.hand.splice(cardIdx,1);
+            log(`Set ${card.name}`);
+        }
+        renderAll();
+    }
+    }
 
 function playCard(card, type){
-    // Auto find slot logic simpler for clicking
-    const arr = type==='mz'?player.field:player.st;
-    const emptyIdx = arr.findIndex(x=>x===null);
-    if(emptyIdx===-1) return log('Hết chỗ trống!');
-    
+    // Chỉ được thao tác trong Main Phase hoặc Main Phase 2
+    if (state.turn !== 'player' || (state.phase !== 'MAIN' && state.phase !== 'MAIN2')) {
+        log("Không thể thực hiện hành động này ở phase hiện tại!");
+        return;
+    }
+
+    // Lấy zone
+    const arr = type === 'mz' ? player.field : player.st;
+    const emptyIdx = arr.findIndex(x => x === null);
+    if (emptyIdx === -1) return log('Hết chỗ trống!');
+
+    // -------------------------
+    // 1) Giới hạn Normal Summon
+    // -------------------------
+    if (type === 'mz') {
+        // Quái úp xuống cũng tính là summon
+        if (state.normalSummonUsed) {
+            log("Bạn chỉ được triệu hồi 1 quái mỗi lượt!");
+            return;
+        }
+    }
+
+    // Xóa khỏi hand
     const hIdx = player.hand.indexOf(card);
-    if(hIdx>-1) player.hand.splice(hIdx,1);
-    
-    if(type==='st') arr[emptyIdx] = {...card, facedown:true};
-    else arr[emptyIdx] = card;
-    
-    log(`${type==='mz'?'Summon':'Set'} ${card.name}`);
+    if (hIdx > -1) player.hand.splice(hIdx, 1);
+
+    // -------------------------
+    // 2) Triệu hồi quái / Set spell-trap
+    // -------------------------
+    if (type === 'st') {
+        arr[emptyIdx] = { ...card, facedown: true };
+        log(`Set ${card.name}`);
+    } else {
+        // Triệu hồi quái
+        arr[emptyIdx] = card;
+        state.normalSummonUsed = true;   // Đánh dấu đã summon
+        log(`Triệu hồi ${card.name}`);
+    }
+
     renderAll();
 }
+
 function showConfirmAndResumeFullscreen(message) {
     const result = confirm(message);
     if (typeof hasEnteredGame !== 'undefined' && hasEnteredGame) {
@@ -725,58 +783,97 @@ function showConfirmAndResumeFullscreen(message) {
 function handleZoneClick(owner, type, idx){
     const arr = owner==='player' ? (type==='mz'?player.field:player.st) : (type==='mz'?opp.field:opp.st);
     const card = arr[idx];
-    
-    // Select card logic
+
+    // 1) Nếu click bài của player => chọn / kích hoạt
     if(owner==='player' && card){
         if(type==='st' && card.facedown){
             if(showConfirmAndResumeFullscreen(`Kích hoạt ${card.name}?`)){
                 delete card.facedown;
                 log(`Kích hoạt Spell: ${card.name}`);
-                // Effect giả lập: Hủy bài đối phương nếu là Raigeki
-                if(card.name==='Raigeki') { opp.field=[null,null,null,null,null]; log('Raigeki hủy diệt quái đối thủ!'); }
+                if(card.name === 'Raigeki'){
+                    opp.field = [null,null,null,null,null];
+                    log('Raigeki hủy diệt quái đối thủ!');
+                }
                 // Sau khi dùng thì xuống mộ
                 setTimeout(()=>{
-                    player.grave.push(card); arr[idx]=null; renderAll();
+                    player.grave.push(card);
+                    arr[idx] = null;
+                    renderAll();
                 }, 1000);
             }
         } else {
             state.selected = {owner, type, idx, name: card.name, atk: card.atk};
             log(`Chọn: ${card.name}`);
+            renderAll();
         }
+        return;
     }
-    
-    // Attack logic
+
+    // 2) Nếu click lên quái của đối thủ trong Battle và đã chọn quái của player -> thực hiện tấn công
     if(owner==='opp' && type==='mz' && state.selected && state.selected.owner==='player' && state.turn==='player' && state.phase==='BATTLE'){
-        // Battle
+        // Chặn lượt đầu được tấn công
+        if (state.firstTurn) {
+            log("Lượt đầu không được tấn công!");
+            state.selected = null;
+            renderAll();
+            return;
+        }
+
+        // Lấy reference quái tấn công và bị tấn công
         const myMon = player.field[state.selected.idx];
         const oppMon = opp.field[idx];
-        if(!myMon) return;
-        
-        log(`${myMon.name} tấn công ${oppMon?oppMon.name:'trực tiếp'}!`);
-        // Logic đơn giản: ATK vs ATK
+
+        if(!myMon){
+            // nếu vô tình không có quái (bị hủy trước đó) thì bỏ chọn
+            state.selected = null;
+            renderAll();
+            return;
+        }
+
+        log(`${myMon.name} tấn công ${oppMon ? oppMon.name : 'trực tiếp'}!`);
+
+        // So sánh ATK đơn giản
         if(oppMon){
-            if((myMon.atk||0) > (oppMon.atk||0)){
-                const dmg = (myMon.atk||0) - (oppMon.atk||0);
+            const atkA = myMon.atk || 0;
+            const atkB = oppMon.atk || 0;
+            if(atkA > atkB){
+                const dmg = atkA - atkB;
                 opp.lp -= dmg;
-                opp.grave.push(oppMon); opp.field[idx]=null;
+                opp.grave.push(oppMon);
+                opp.field[idx] = null;
                 log(`Thắng chiến đấu! Opponent -${dmg} LP`);
-            } else if ((myMon.atk||0) < (oppMon.atk||0)){
-                const dmg = (oppMon.atk||0) - (myMon.atk||0);
+            } else if(atkA < atkB){
+                const dmg = atkB - atkA;
                 player.lp -= dmg;
-                player.grave.push(myMon); player.field[state.selected.idx]=null;
+                player.grave.push(myMon);
+                player.field[state.selected.idx] = null;
                 log(`Thua chiến đấu! Bạn -${dmg} LP`);
             } else {
-                opp.grave.push(oppMon); opp.field[idx]=null;
-                player.grave.push(myMon); player.field[state.selected.idx]=null;
+                // hòa
+                opp.grave.push(oppMon);
+                opp.field[idx] = null;
+                player.grave.push(myMon);
+                player.field[state.selected.idx] = null;
                 log(`Hòa! Cả 2 cùng chết.`);
             }
         } else {
-            opp.lp -= (myMon.atk||0);
-            log(`Tấn công trực tiếp! -${myMon.atk} LP`);
+            // direct attack
+            const dmg = myMon.atk || 0;
+            opp.lp -= dmg;
+            log(`Tấn công trực tiếp! -${dmg} LP`);
         }
+
         state.selected = null;
+        renderAll();
+        return;
     }
-    renderAll();
+
+    // 3) Nếu click vào ô khác (ví dụ click ô trống của opp hoặc click vào vùng không liên quan)
+    // => chỉ render lại hoặc bỏ chọn
+    if(state.selected){
+        state.selected = null;
+        renderAll();
+    }
 }
 
 // Attack Direct (Click avatar đối thủ)
@@ -792,12 +889,67 @@ id('info-opp').onclick = ()=>{
     }
 }
 
-id('btnDraw').onclick = ()=> drawCard('player');
-id('btnToBattle').onclick = ()=> { state.phase='BATTLE'; renderAll(); log('Vào Battle Phase'); }
-id('btnEnd').onclick = ()=> { 
-    state.turn='opp'; state.phase='DRAW'; renderAll(); log('Kết thúc lượt.');
+id('btnDraw').onclick = () => {
+    if (state.turn !== 'player') return log('Chỉ rút khi là lượt bạn.');
+    if (state.hasDrawn) return log('Bạn đã rút trong lượt này rồi!');
+    drawCard('player');
+    state.hasDrawn = true;
+};
+
+id('btnToBattle').onclick = () => {
+    // MAIN → (Battle) hoặc skip nếu turn đầu
+    if (state.phase === 'MAIN') {
+
+        // Lượt đầu: bỏ qua battle, sang MAIN2
+        if (state.turn === 'player' && state.firstTurn) {
+            state.phase = 'MAIN2';
+            id('btnToBattle').textContent = "Main Phase 2";
+            log("Lượt đầu không battle — chuyển thẳng Main Phase 2");
+        } else {
+            state.phase = 'BATTLE';
+            id('btnToBattle').textContent = "Main Phase 2";
+            log("Battle Phase!");
+        }
+    }
+
+    // BATTLE → MAIN2
+    else if (state.phase === 'BATTLE') {
+        state.phase = 'MAIN2';
+        id('btnToBattle').textContent = "Main Phase 2";
+        log("Main Phase 2!");
+    }
+
+    // MAIN2 → button disabled (không quay lại battle)
+    else if (state.phase === 'MAIN2') {
+        log("Đang ở Main Phase 2 rồi, không quay lại Battle được.");
+    }
+
+    renderAll();
+};
+
+
+
+id('btnEnd').onclick = () => { 
+    if (state.phase !== 'MAIN2') {
+        log("Phải qua Main Phase 2 mới End được!");
+        return;
+    }
+
+    // Kết thúc lượt player -> chuyển sang lượt đối thủ
+    state.turn = 'opp'; 
+    state.phase = 'DRAW'; 
+    // Sau khi player chính thức end turn thì lượt đầu đã qua
+    state.firstTurn = false; 
+    // Reset hasDrawn cho lượt tới (opp sẽ tự rút đầu lượt trong oppAI)
+    state.hasDrawn = false;
+    state.normalSummonUsed = false;
+
+    renderAll(); 
+    log('Kết thúc lượt.');
+
     setTimeout(oppAI, 1000);
-}
+};
+
 
 function oppAI(){
     drawCard('opp');
@@ -812,8 +964,19 @@ function oppAI(){
     }
     renderAll();
     setTimeout(()=>{
-        state.turn='player'; state.phase='MAIN'; log('Lượt của bạn.'); renderAll();
-    }, 1500);
+    state.turn = 'player';
+    state.phase = 'MAIN';
+    state.normalSummonUsed = false;
+
+    // Khi bắt đầu lượt player sau opp, auto draw 1 lá nếu chưa rút
+    if (!state.hasDrawn) {
+        drawCard('player');
+        state.hasDrawn = true;
+    }
+    log('Lượt của bạn.');
+    renderAll();
+}, 1500);
+
 }
 
 function checkGameEnd() {
